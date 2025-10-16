@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Markdown Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: #f4f7f8;
+          margin: 0;
+          padding: 0;
+        }
+
+        .container {
+          max-width: 900px;
+          margin: 50px auto;
+          padding: 30px;
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+          text-align: center;
+          color: #333;
+          margin-bottom: 20px;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 600;
+          color: #555;
+        }
+
+        textarea {
+          width: 100%;
+          height: 80px;
+          padding: 12px;
+          font-size: 14px;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          margin-bottom: 15px;
+          resize: vertical;
+          transition: border 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        textarea:focus {
+          outline: none;
+          border-color: #4CAF50;
+          box-shadow: 0 0 6px rgba(76, 175, 80, 0.3);
+        }
+
+        button {
+          padding: 12px 25px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #fff;
+          background-color: #4CAF50;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background-color 0.2s ease, transform 0.1s ease;
+          margin-right: 10px;
+        }
+
+        button:hover {
+          background-color: #45a049;
+          transform: translateY(-2px);
+        }
+
+        button:active {
+          transform: translateY(0);
+        }
+
+        #response {
+          margin-top: 20px;
+          padding: 20px;
+          min-height: 200px;
+          background: #272822;
+          color: #f8f8f2;
+          border-radius: 10px;
+          overflow-x: auto;
+        }
+
+        #response h1, #response h2, #response h3 {
+          color: #4CAF50;
+          margin-top: 15px;
+        }
+
+        #response p {
+          line-height: 1.6;
+        }
+
+        #response li {
+          margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+          .container { margin: 20px; padding: 20px; }
+          button { width: 100%; margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>AI Markdown Viewer</h2>
+
+    <label>Message:</label>
+    <textarea id="message" placeholder="Add your prompt here"></textarea>
+
+    <label>System Message:</label>
+    <textarea id="systemMessage" placeholder="Add your system message here"></textarea>
+
+    <div style="margin-bottom:15px;">
+        <button onclick="sendRequest()">Send Request</button>
+        <button onclick="sendStream()">Stream Response</button>
+    </div>
+
+    <h3>Response:</h3>
+    <div id="response"></div>
+</div>
+
+<script>
+    // Normal POST request
+    async function sendRequest() {
+      const message = document.getElementById("message").value;
+      const systemMessage = document.getElementById("systemMessage").value;
+      const responseDiv = document.getElementById("response");
+
+      if (!message) {
+        responseDiv.innerHTML = "⚠️ Please enter a prompt in the Message field.";
+        return;
+      }
+
+      responseDiv.innerHTML = "⏳ Sending request...";
+
+      try {
+        const res = await fetch("/ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, systemMessage })
+        });
+
+        const text = await res.text(); // backend returns Markdown/plain text
+        responseDiv.innerHTML = marked.parse(text);
+      } catch (err) {
+        responseDiv.innerHTML = "❌ Error: " + err;
+      }
+    }
+
+    // Streaming SSE request
+    function sendStream() {
+  const message = document.getElementById("message").value;
+  const systemMessage = document.getElementById("systemMessage").value;
+  const responseDiv = document.getElementById("response");
+
+  if (!message) {
+    responseDiv.innerHTML = "⚠️ Please enter a prompt in the Message field.";
+    return;
+  }
+
+  responseDiv.innerHTML = ""; // clear previous response
+  let accumulated = "";      // store full streamed text
+
+  const url = `/ai/generateStream?message=${encodeURIComponent(message)}&systemMessage=${encodeURIComponent(systemMessage)}`;
+
+  const evtSource = new EventSource(url);
+
+  evtSource.onmessage = function(event) {
+    // Append new chunk to accumulated text
+    accumulated += event.data;
+
+    // Render accumulated content smoothly
+    responseDiv.innerHTML = marked.parse(accumulated);
+  };
+
+  evtSource.onerror = function(err) {
+    responseDiv.innerHTML += "\n❌ Stream error or connection closed.";
+    evtSource.close();
+  };
+}
+
+</script>
+</body>
+</html>
