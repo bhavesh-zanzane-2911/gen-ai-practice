@@ -23,14 +23,14 @@ A simple Spring Boot application demonstrating **AI text generation and streamin
 | AI Integration | Spring AI (with OpenAI / Anthropic / Ollama, etc.) |
 | Reactive Streaming | Project Reactor (Flux + SSE) |
 | Frontend | HTML + JavaScript (no React/Vue) |
-| Build Tool | Maven or Gradle |
+| Build Tool | Maven |
 
 ---
 
 ## 📦 Prerequisites
 
 1. **Java 17+**
-2. **Maven or Gradle**
+2. **Maven**
 3. An AI model provider (e.g. OpenAI API key)
 
 Add your API key to `application.properties`:
